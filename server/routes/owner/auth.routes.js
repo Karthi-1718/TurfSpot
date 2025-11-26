@@ -11,11 +11,12 @@ import {
 } from "../../middleware/validators/owner/authValidator.js";
 
 const authRouter = Router();
-authRouter.post("/register",validateRegisterInput,  registerOwner);
-authRouter.post("/login",validateLoginInput, loginOwner);
-authRouter.post("/ownerRequest",validateOwnerRequestInput, ownerRequest);
+
+// FIX: Every validator must send "message" instead of whole object
+authRouter.post("/register", validateRegisterInput, registerOwner);
+
+authRouter.post("/login", validateLoginInput, loginOwner);
+
+authRouter.post("/ownerRequest", validateOwnerRequestInput, ownerRequest);
 
 export default authRouter;
-
-
-

@@ -5,7 +5,7 @@ import { useState } from "react";
 import axiosInstance from "./useAxiosInstance";
 import toast from "react-hot-toast";
 import { useDispatch } from "react-redux";
-import {login} from "../redux/slices/authSlice";
+import { login } from "../redux/slices/authSlice";
 import { useNavigate } from "react-router-dom";
 
 const loginSchema = yup.object().shape({
@@ -13,7 +13,7 @@ const loginSchema = yup.object().shape({
     .string()
     .required("Enter your email")
     .matches(
-      /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/gm,
+      /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
       "Enter a valid email"
     ),
   password: yup
@@ -26,7 +26,7 @@ const useLoginForm = () => {
   const [loading, setLoading] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
- 
+
   const {
     register,
     handleSubmit,
@@ -36,28 +36,44 @@ const useLoginForm = () => {
   });
 
   const onSubmit = async (data) => {
-   setLoading(true);
+    setLoading(true);
     try {
-      const response = await axiosInstance.post("api/owner/auth/login", data);
-      const result = await response.data;
-      dispatch(login({token:result.token,role:result.role}));
-      if(result.role === "owner") {
+      const response = await axiosInstance.post(
+        "/api/owner/auth/login",
+        data
+      );
+
+      const result = response.data;
+
+      // save token in redux
+      dispatch(login({ token: result.token, role: result.role }));
+
+      // set token to axios header
+      axiosInstance.defaults.headers.common[
+        "Authorization"
+      ] = `Bearer ${result.token}`;
+
+      toast.success(result.message || "Login successful!");
+
+      // redirect based on role
+      if (result.role === "owner") {
         navigate("/owner");
-      }else if(result.role === "admin") {
+      } else if (result.role === "admin") {
         navigate("/admin");
+      } else {
+        toast.error("Invalid role received");
       }
-       axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${result.token}`;
-      toast.success(result.message);      
     } catch (error) {
-      console.error(error, "error");
-      if(error.response) {
-        toast.error(error.response?.data?.message);
-      } else if(error.request) {
-        toast.error("No response from server. Please try again later.");
+      console.error("Login error:", error);
+
+      if (error.response) {
+        toast.error(error.response.data?.message || "Invalid credentials");
+      } else if (error.request) {
+        toast.error("Server not responding. Try again.");
       } else {
         toast.error(error.message);
       }
-    }finally{
+    } finally {
       setLoading(false);
     }
   };

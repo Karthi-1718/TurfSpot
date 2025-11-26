@@ -7,9 +7,10 @@ import toast from "react-hot-toast";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { login } from "../redux/slices/authSlice";
- 
+
 const registerSchema = yup.object().shape({
   name: yup.string().required("Name is required"),
+
   email: yup
     .string()
     .required("Enter your email")
@@ -17,17 +18,17 @@ const registerSchema = yup.object().shape({
       /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/gm,
       "Enter a valid email"
     ),
+
   phone: yup
     .string()
     .required("Enter your phone number")
-    .matches(/^[0-9]{10}$/, "Enter a valid 10-digit phone number")
-    .min(10, "Phone number must be at least 10 digits long")
-    .max(10, "Phone number must be at most 10 digits long"),
+    .matches(/^[0-9]{10}$/, "Enter a valid 10-digit phone number"),
 
   password: yup
     .string()
     .required("Enter your password")
     .min(6, "Password must be at least 6 characters long"),
+
   confirmPassword: yup
     .string()
     .required("Enter your password")
@@ -39,8 +40,6 @@ const useSignUpForm = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
-
-
   const {
     register,
     handleSubmit,
@@ -50,35 +49,43 @@ const useSignUpForm = () => {
   });
 
   const onSubmit = async (data) => {
-     setLoading(true);
+    setLoading(true);
     try {
+      const { confirmPassword, ...formattedData } = data;
+
       const response = await axiosInstance.post(
         "/api/owner/auth/register",
-        data
+        formattedData
       );
-      const result = await response.data;
-        dispatch(login({ token: result.token, role: result.role }));
-        if (result.role === "owner") {
-          navigate("/owner");
-        } else if (result.role === "admin") {
-          navigate("/admin");
+
+      const result = response.data;
+
+      dispatch(login({ token: result.token, role: result.role }));
+
+      if (result.role === "owner") {
+        navigate("/owner");
+      } else if (result.role === "admin") {
+        navigate("/admin");
+      }
+
+    } catch (error) {
+
+      if (error.response) {
+        const msg = error.response.data.message;
+
+        if (Array.isArray(msg)) {
+          toast.error(msg[0].msg); // FIXED
+        } else {
+          toast.error(msg || "Registration failed");
         }
-        
-    } catch (error){
-       if (error.response) {
-        // Server responded with a status other than 200 range
-        toast.error(
-          `${error.response.data.message || "Registration failed"}`
-        );
+
       } else if (error.request) {
-        // Request was made but no response was received
         toast.error("No response from server. Please try again later.");
       } else {
-        // Something else caused the error
         toast.error(`Error: ${error.message}`);
       }
-    }
-     finally {
+
+    } finally {
       setLoading(false);
     }
   };

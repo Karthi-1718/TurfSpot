@@ -19,7 +19,7 @@ app.get("/", (req, res) => {
 });
 
 
-const port = process.env.PORT || 1234;
+const port = process.env.PORT || 3001;
 
 // Function to start the server
 const startServer = async () => {

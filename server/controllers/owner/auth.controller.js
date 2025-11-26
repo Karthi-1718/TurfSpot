@@ -95,34 +95,47 @@ export const registerOwner = async (req, res) => {
 
 export const loginOwner = async (req, res) => {
   const { email, password } = req.body;
+
+  // Validation errors formatted correctly
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+    return res.status(400).json({
+      success: false,
+      message: errors.array()[0].msg,  // send only the first error message
+    });
   }
+
   try {
     const owner = await Owner.findOne({ email });
     if (!owner) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Owner does not exist" });
+      return res.status(400).json({
+        success: false,
+        message: "Owner does not exist",
+      });
     }
+
     const isPasswordCorrect = await argon2.verify(owner.password, password);
     if (!isPasswordCorrect) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Incorrect password" });
-    }
-    const token = generateOwnerToken(owner);
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "Login successful",
-        token,
-        role: owner.role,
+      return res.status(400).json({
+        success: false,
+        message: "Incorrect password",
       });
+    }
+
+    const token = generateOwnerToken(owner);
+
+    return res.status(200).json({
+      success: true,
+      message: "Login successful",
+      token,
+      role: owner.role,
+    });
   } catch (err) {
     console.log(chalk.red(err.message));
-    return res.status(400).json({ success: false, message: err.message });
+    return res.status(500).json({
+      success: false,
+      message: "Server error. Please try again later.",
+    });
   }
 };
+
